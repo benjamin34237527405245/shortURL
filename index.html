@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>shortURL</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'canva sans';
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .container {
+            width: 90%;
+            max-width: 800px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .url-button {
+            display: inline-block;
+            margin: 10px;
+            padding: 20px;
+            background-size: cover;
+            font-size: 30px;
+            background-position: center;
+            font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+            color: #000000;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            width: 200px;
+            height: 100px;
+        }
+        .url-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+        .add-button, .modify-button, .save-button, .delete-all-button {
+            margin: 20px;
+            padding: 10px 20px;
+            font-family: canva sans;
+            background-color: #000000;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .add-button:hover, .modify-button:hover, .save-button:hover, .delete-all-button:hover {
+            background-color: #624cf7;
+        }
+        .add-button.disabled {
+            background-color: grey;
+            cursor: not-allowed;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: left;
+            width: 90%;
+            max-width: 400px;
+        }
+        .modal-content label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        .modal-content input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #333333;
+            color: #ffffff;
+        }
+        .modal-content button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .modal-content button:hover {
+            background-color: #45a049;
+        }
+        .modal-content input[type="color"] {
+            padding: 0;
+            height: 40px;
+        }
+        .close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 30px;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>shortURL</h1>
+    <div class="container">
+        <div id="urlButtonsContainer"></div>
+        <button class="add-button" id="addButton">Add URL</button>
+        <button class="modify-button" id="modifyButton">Modify</button>
+        <button class="delete-all-button" id="deleteAllButton">Delete All Shortcuts</button>
+    </div>
+    <button class="save-button" id="saveButton" style="display: none;">Save</button>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <span class="close" id="closeModal">&times;</span>
+            <label for="urlName">URL Name:</label>
+            <input type="text" id="urlName" placeholder="Enter URL name">
+            <label for="urlLink">URL Link:</label>
+            <input type="text" id="urlLink" placeholder="Enter URL link">
+            <label for="urlImage">Background Image URL:</label>
+            <input type="text" id="urlImage" placeholder="Enter background image URL">
+            <label for="urlColor">Background Color:</label>
+            <input type="color" id="urlColor" value="#ffffff">
+            <button id="saveButtonModal">Save</button>
+        </div>
+    </div>
+
+    <script>
+        const addButton = document.getElementById('addButton');
+        const modifyButton = document.getElementById('modifyButton');
+        const saveButton = document.getElementById('saveButton');
+        const deleteAllButton = document.getElementById('deleteAllButton');
+        const modal = document.getElementById('modal');
+        const closeModal = document.getElementById('closeModal');
+        const saveButtonModal = document.getElementById('saveButtonModal');
+        const urlButtonsContainer = document.getElementById('urlButtonsContainer');
+        let modifyMode = false;
+        let selectedButton = null;
+
+        // Load saved buttons from localStorage
+        window.onload = () => {
+            const savedButtons = JSON.parse(localStorage.getItem('urlButtons')) || [];
+            savedButtons.forEach(buttonData => {
+                createButton(buttonData);
+            });
+        };
+
+        addButton.addEventListener('click', () => {
+            modal.style.display = 'flex';
+        });
+
+        closeModal.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        modifyButton.addEventListener('click', () => {
+            document.body.style.backgroundColor = 'red';
+            addButton.classList.add('disabled');
+            addButton.disabled = true;
+            saveButton.style.display = 'block';
+            modifyMode = true;
+        });
+
+        saveButton.addEventListener('click', () => {
+            document.body.style.backgroundColor = '#121212';
+            addButton.classList.remove('disabled');
+            addButton.disabled = false;
+            saveButton.style.display = 'none';
+            modifyMode = false;
+            saveButtons();
+        });
+
+        saveButtonModal.addEventListener('click', () => {
+            const urlName = document.getElementById('urlName').value.trim();
+            const urlLink = document.getElementById('urlLink').value.trim();
+            const urlImage = document.getElementById('urlImage').value.trim();
+            const urlColor = document.getElementById('urlColor').value;
+
+            if (urlLink) {
+                if (modifyMode && selectedButton) {
+                    selectedButton.textContent = urlName || ' ';
+                    selectedButton.style.backgroundImage = urlImage ? `url(${urlImage})` : 'none';
+                    selectedButton.style.backgroundColor = urlImage ? 'transparent' : urlColor;
+                    selectedButton.dataset.url = urlLink;
+                } else {
+                    let existingButton = Array.from(urlButtonsContainer.children).find(button => button.dataset.url === urlLink);
+
+                    if (existingButton) {
+                        existingButton.textContent = urlName || ' ';
+                        existingButton.style.backgroundImage = urlImage ? `url(${urlImage})` : 'none';
+                        existingButton.style.backgroundColor = urlImage ? 'transparent' : urlColor;
+                    } else {
+                        const buttonData = {
+                            urlName: urlName || ' ',
+                            urlLink,
+                            urlImage,
+                            urlColor
+                        };
+                        createButton(buttonData);
+                    }
+                }
+                modal.style.display = 'none';
+                saveButtons();
+            } else {
+                alert('Please enter a URL link');
+            }
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        deleteAllButton.addEventListener('click', () => {
+            urlButtonsContainer.innerHTML = '';
+            localStorage.removeItem('urlButtons');
+        });
+
+        function createButton({ urlName, urlLink, urlImage, urlColor }) {
+            const urlButton = document.createElement('button');
+            urlButton.className = 'url-button';
+            urlButton.dataset.url = urlLink;
+            urlButton.style.backgroundImage = urlImage ? `url(${urlImage})` : 'none';
+            urlButton.style.backgroundColor = urlImage ? 'transparent' : urlColor;
+            urlButton.textContent = urlName || ' ';
+            urlButton.addEventListener('click', () => {
+                if (modifyMode) {
+                    selectedButton = urlButton;
+                    document.getElementById('urlName').value = urlButton.textContent.trim();
+                    document.getElementById('urlLink').value = urlButton.dataset.url;
+                    document.getElementById('urlImage').value = urlButton.style.backgroundImage.slice(5, -2);
+                    document.getElementById('urlColor').value = urlButton.style.backgroundColor;
+                    modal.style.display = 'flex';
+                } else {
+                    window.open(urlLink, '_blank');
+                }
+            });
+
+            urlButtonsContainer.appendChild(urlButton);
+        }
+
+        function saveButtons() {
+            const buttonsData = Array.from(urlButtonsContainer.children).map(button => ({
+                urlName: button.textContent.trim() === '' ? ' ' : button.textContent.trim(),
+                urlLink: button.dataset.url,
+                urlImage: button.style.backgroundImage.slice(5, -2),
+                urlColor: button.style.backgroundColor
+            }));
+            localStorage.setItem('urlButtons', JSON.stringify(buttonsData));
+        }
+    </script>
+</body>
+</html>

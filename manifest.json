@@ -1,0 +1,16 @@
+{
+    "name": "shortURL",
+    "short_name": "shortURL",
+    "start_url": "index.html",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#6200ea",
+    "icons": [
+        {  
+        "src": "link.png",
+        "sizes": "512x512",
+        "type": "image/png"
+      
+        }
+    ]
+}
