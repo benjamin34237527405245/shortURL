@@ -45,7 +45,7 @@
             transform: scale(1.05);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
         }
-        .add-button, .modify-button, .save-button, .delete-all-button {
+        .add-button, .modify-button, .save-button, .delete-all-button, .export-button, .import-button {
             margin: 20px;
             padding: 10px 20px;
             font-family: canva sans;
@@ -56,7 +56,7 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
-        .add-button:hover, .modify-button:hover, .save-button:hover, .delete-all-button:hover {
+        .add-button:hover, .modify-button:hover, .save-button:hover, .delete-all-button:hover, .export-button:hover, .import-button:hover {
             background-color: #624cf7;
         }
         .add-button.disabled {
@@ -132,6 +132,11 @@
         <button class="add-button" id="addButton">Add URL</button>
         <button class="modify-button" id="modifyButton">Modify</button>
         <button class="delete-all-button" id="deleteAllButton">Delete All Shortcuts</button>
+        <div>
+            <button class="export-button" id="exportButton">Export Shortcuts</button>
+            <button class="import-button" id="importButton">Import Shortcuts</button>
+        </div>
+        <input type="file" id="importFileInput" style="display: none;">
     </div>
     <button class="save-button" id="saveButton" style="display: none;">Save</button>
 
@@ -160,6 +165,9 @@
         const modifyButton = document.getElementById('modifyButton');
         const saveButton = document.getElementById('saveButton');
         const deleteAllButton = document.getElementById('deleteAllButton');
+        const exportButton = document.getElementById('exportButton');
+        const importButton = document.getElementById('importButton');
+        const importFileInput = document.getElementById('importFileInput');
         const modal = document.getElementById('modal');
         const closeModal = document.getElementById('closeModal');
         const saveButtonModal = document.getElementById('saveButtonModal');
@@ -254,6 +262,38 @@
         deleteAllButton.addEventListener('click', () => {
             urlButtonsContainer.innerHTML = '';
             localStorage.removeItem('urlButtons');
+        });
+
+        exportButton.addEventListener('click', () => {
+            const buttonsData = JSON.parse(localStorage.getItem('urlButtons')) || [];
+            const blob = new Blob([JSON.stringify(buttonsData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'shortcuts.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        importButton.addEventListener('click', () => {
+            importFileInput.click();
+        });
+
+        importFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const importedButtons = JSON.parse(e.target.result);
+                    importedButtons.forEach(buttonData => {
+                        createButton(buttonData);
+                    });
+                    saveButtons();
+                };
+                reader.readAsText(file);
+            }
         });
 
         function createButton({ urlName, textColor, urlLink, urlImage, urlColor }) {
